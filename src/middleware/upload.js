@@ -1,23 +1,23 @@
 import multer from "multer";
-import path from "path";
-import fs from "fs";
+import { CloudinaryStorage } from "multer-storage-cloudinary";
+import { v2 as cloudinary } from "cloudinary";
+import dotenv from "dotenv";
+dotenv.config();
 
-// ✅ Ensure uploads folder exists
-const uploadDir = "./uploads";
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir);
-  console.log("📁 'uploads' folder created automatically");
-}
+// ✅ Configure Cloudinary
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
 
-// ✅ Configure storage
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, "uploads/"); // Folder where images will be stored
-  },
-  filename: function (req, file, cb) {
-    const uniqueName =
-      file.fieldname + "-" + Date.now() + path.extname(file.originalname);
-    cb(null, uniqueName);
+// ✅ Set up Cloudinary storage
+const storage = new CloudinaryStorage({
+  cloudinary,
+  params: {
+    folder: "drinkshop_uploads", // Folder name in your Cloudinary account
+    allowed_formats: ["jpg", "png", "jpeg"],
+    public_id: (req, file) => Date.now() + "-" + file.originalname,
   },
 });
 

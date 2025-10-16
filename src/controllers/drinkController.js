@@ -1,4 +1,4 @@
-import Drink from "../models/drinks.js"; // ✅ Ensure filename matches your actual model
+import Drink from "../models/drinks.js";
 
 // 🟢 Get all drinks (Public)
 export const getAllDrinks = async (req, res) => {
@@ -37,8 +37,8 @@ export const addDrink = async (req, res) => {
       return res.status(400).json({ message: "Name and price are required" });
     }
 
-    // ✅ Handle uploaded image
-    const imageUrl = req.file ? `/uploads/${req.file.filename}` : null;
+    // ✅ Cloudinary provides `req.file.path` as the full URL
+    const imageUrl = req.file ? req.file.path : null;
 
     const newDrink = await Drink.create({
       name,
@@ -72,7 +72,8 @@ export const updateDrink = async (req, res) => {
       return res.status(404).json({ message: "Drink not found" });
     }
 
-    const imageUrl = req.file ? `/uploads/${req.file.filename}` : drink.imageUrl;
+    // ✅ If new image uploaded, replace with new Cloudinary URL
+    const imageUrl = req.file ? req.file.path : drink.imageUrl;
 
     await drink.update({
       name,
