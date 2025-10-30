@@ -1,43 +1,38 @@
-import { DataTypes } from "sequelize";
-import sequelize from "../config/db.js";
+import mongoose from "mongoose";
 
-const User = sequelize.define("User", {
-  id: {
-    type: DataTypes.INTEGER,
-    autoIncrement: true,
-    primaryKey: true,
-  },
+const userSchema = new mongoose.Schema(
+  {
+    username: {
+      type: String,
+      required: true,
+      trim: true,
+    },
 
-  username: {
-    type: DataTypes.STRING,
-    allowNull: false,
-  },
+    email: {
+      type: String,
+      required: true,
+      unique: true,
+      lowercase: true,
+    },
 
-  email: {
-    type: DataTypes.STRING,
-    allowNull: false,
-    unique: true,
-    validate: {
-      isEmail: true,
+    passwordHash: {
+      type: String,
+      required: true,
+    },
+
+    // ✅ Role (admin / user)
+    isAdmin: {
+      type: Boolean,
+      default: false,
+    },
+
+    // ✅ Track last login time
+    lastLogin: {
+      type: Date,
+      default: null,
     },
   },
+  { timestamps: true }
+);
 
-  passwordHash: {
-    type: DataTypes.STRING,
-    allowNull: false,
-  },
-
-  // ✅ Added field for role-based access (admin / user)
-  isAdmin: {
-    type: DataTypes.BOOLEAN,
-    defaultValue: false, // Normal users by default
-  },
-
-  // ✅ Optional: you can track when a user last logged in
-  lastLogin: {
-    type: DataTypes.DATE,
-    allowNull: true,
-  },
-});
-
-export default User;
+export default mongoose.model("User", userSchema);

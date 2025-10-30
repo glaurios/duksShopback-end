@@ -1,60 +1,43 @@
-import { DataTypes } from "sequelize";
-import sequelize from "../config/db.js";
+import mongoose from "mongoose";
 
-const Drink = sequelize.define("Drink", {
-  id: {
-    type: DataTypes.INTEGER,
-    autoIncrement: true,
-    primaryKey: true,
+const drinkSchema = new mongoose.Schema(
+  {
+    name: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+    description: {
+      type: String,
+      default: "",
+    },
+    price: {
+      type: Number,
+      required: true,
+    },
+    imageUrl: {
+      type: String,
+      default: "",
+    },
+    category: {
+      type: String,
+      default: "",
+    },
+    size: {
+      type: String,
+      default: "",
+    },
+    status: {
+      type: String,
+      enum: ["Active", "Inactive"],
+      default: "Active",
+    },
+    available: {
+      type: Boolean,
+      default: true,
+    },
   },
+  { timestamps: true }
+);
 
-  // Product name
-  name: {
-    type: DataTypes.STRING,
-    allowNull: false,
-  },
-
-  // Short product description
-  description: {
-    type: DataTypes.TEXT,
-    allowNull: true,
-  },
-
-  // Price per unit
-  price: {
-    type: DataTypes.FLOAT,
-    allowNull: false,
-  },
-
-  // Optional image URL
-  imageUrl: {
-    type: DataTypes.STRING,
-    allowNull: true,
-  },
-
-  // Product category (Juice, Smoothie, etc.)
-  category: {
-    type: DataTypes.STRING,
-    allowNull: true,
-  },
-
-  // Product size (Small, 300ml, 500ml, etc.)
-  size: {
-    type: DataTypes.STRING,
-    allowNull: true,
-  },
-
-  // Whether it's visible or hidden in store
-  status: {
-    type: DataTypes.ENUM("Active", "Inactive"),
-    defaultValue: "Active",
-  },
-
-  // Availability toggle for admin use
-  available: {
-    type: DataTypes.BOOLEAN,
-    defaultValue: true,
-  },
-});
-
-export default Drink;
+export default mongoose.model("Drink", drinkSchema);

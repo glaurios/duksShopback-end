@@ -7,13 +7,13 @@ import User from "../models/user.js";
 // =======================================================
 const generateTokens = (user) => {
   const token = jwt.sign(
-    { id: user.id, isAdmin: user.isAdmin },
+    { id: user._id, isAdmin: user.isAdmin },
     process.env.JWT_SECRET,
     { expiresIn: "1d" }
   );
 
   const refreshToken = jwt.sign(
-    { id: user.id, isAdmin: user.isAdmin },
+    { id: user._id, isAdmin: user.isAdmin },
     process.env.REFRESH_SECRET,
     { expiresIn: "7d" }
   );
@@ -46,18 +46,14 @@ const isFixedAdmin = (email, password) => {
 export const signup = async (req, res) => {
   try {
     const { username, email, password } = req.body;
-
-    if (!username || !email || !password) {
+    if (!username || !email || !password)
       return res.status(400).json({ message: "All fields are required" });
-    }
 
-    const existingUser = await User.findOne({ where: { email } });
-    if (existingUser) {
+    const existingUser = await User.findOne({ email });
+    if (existingUser)
       return res.status(400).json({ message: "Email already registered" });
-    }
 
     const hashedPassword = await bcrypt.hash(password, 10);
-
     const user = await User.create({
       username: username.trim(),
       email: email.trim().toLowerCase(),
@@ -73,7 +69,7 @@ export const signup = async (req, res) => {
       refreshToken,
       role: "user",
       user: {
-        id: user.id,
+        id: user._id,
         username: user.username,
         email: user.email,
       },
@@ -90,16 +86,13 @@ export const signup = async (req, res) => {
 export const login = async (req, res) => {
   try {
     const { email, password } = req.body;
-
-    if (!email || !password) {
+    if (!email || !password)
       return res.status(400).json({ message: "All fields are required" });
-    }
 
     // 🧩 Check fixed admin credentials
     const matchedAdmin = isFixedAdmin(email, password);
-
     if (matchedAdmin) {
-      let admin = await User.findOne({ where: { email: matchedAdmin.email } });
+      let admin = await User.findOne({ email: matchedAdmin.email });
 
       if (!admin) {
         const hashedPassword = await bcrypt.hash(password, 10);
@@ -115,14 +108,13 @@ export const login = async (req, res) => {
       }
 
       const { token, refreshToken } = generateTokens(admin);
-
       return res.status(200).json({
         message: "Admin logged in successfully",
         token,
         refreshToken,
         role: "admin",
         user: {
-          id: admin.id,
+          id: admin._id,
           username: admin.username,
           email: admin.email,
         },
@@ -130,15 +122,13 @@ export const login = async (req, res) => {
     }
 
     // ✅ Regular user login
-    const user = await User.findOne({ where: { email } });
-    if (!user) {
+    const user = await User.findOne({ email });
+    if (!user)
       return res.status(404).json({ message: "User not found" });
-    }
 
     const isMatch = await bcrypt.compare(password, user.passwordHash);
-    if (!isMatch) {
+    if (!isMatch)
       return res.status(400).json({ message: "Invalid credentials" });
-    }
 
     const { token, refreshToken } = generateTokens(user);
 
@@ -148,7 +138,7 @@ export const login = async (req, res) => {
       refreshToken,
       role: user.isAdmin ? "admin" : "user",
       user: {
-        id: user.id,
+        id: user._id,
         username: user.username,
         email: user.email,
       },
@@ -162,46 +152,33 @@ export const login = async (req, res) => {
 // =======================================================
 // 🚪 LOGOUT Controller
 // =======================================================
-export const logout = async (req, res) => {
-  try {
-    res.json({ message: "Logout successful — remove token on client side" });
-  } catch (err) {
-    console.error("Logout error:", err);
-    res.status(500).json({ message: "Server error during logout" });
-  }
+export const logout = (req, res) => {
+  res.json({ message: "Logout successful — remove token on client side" });
 };
 
 // =======================================================
 // 🔁 REFRESH TOKEN Controller
 // =======================================================
-export const refresh = async (req, res) => {
-  try {
-    const { refreshToken } = req.body;
+export const refresh = (req, res) => {
+  const { refreshToken } = req.body;
+  if (!refreshToken)
+    return res.status(400).json({ message: "Refresh token required" });
 
-    if (!refreshToken) {
-      return res.status(400).json({ message: "Refresh token required" });
-    }
+  jwt.verify(refreshToken, process.env.REFRESH_SECRET, (err, decoded) => {
+    if (err)
+      return res.status(403).json({ message: "Invalid or expired refresh token" });
 
-    jwt.verify(refreshToken, process.env.REFRESH_SECRET, (err, decoded) => {
-      if (err) {
-        return res.status(403).json({ message: "Invalid or expired refresh token" });
-      }
+    const newAccessToken = jwt.sign(
+      { id: decoded.id, isAdmin: decoded.isAdmin },
+      process.env.JWT_SECRET,
+      { expiresIn: "1d" }
+    );
 
-      const newAccessToken = jwt.sign(
-        { id: decoded.id, isAdmin: decoded.isAdmin },
-        process.env.JWT_SECRET,
-        { expiresIn: "1d" }
-      );
-
-      res.json({
-        message: "Access token refreshed successfully",
-        token: newAccessToken,
-      });
+    res.json({
+      message: "Access token refreshed successfully",
+      token: newAccessToken,
     });
-  } catch (err) {
-    console.error("Refresh token error:", err);
-    res.status(500).json({ message: "Server error" });
-  }
+  });
 };
 
 // =======================================================
@@ -209,19 +186,13 @@ export const refresh = async (req, res) => {
 // =======================================================
 export const getMe = async (req, res) => {
   try {
-    const user = req.user;
-    if (!user) {
+    const user = await User.findById(req.user.id).select("-passwordHash");
+    if (!user)
       return res.status(404).json({ message: "User not found" });
-    }
 
     res.json({
       message: user.isAdmin ? "Logged in as Admin" : "Logged in as User",
-      user: {
-        id: user.id,
-        username: user.username,
-        email: user.email,
-        isAdmin: user.isAdmin,
-      },
+      user,
     });
   } catch (err) {
     console.error("GetMe error:", err);

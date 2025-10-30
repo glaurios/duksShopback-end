@@ -3,12 +3,10 @@ import dotenv from "dotenv";
 import cors from "cors";
 import path from "path";
 import { fileURLToPath } from "url";
-import sequelize from "./config/db.js";
+import mongoose from "mongoose";
 import authRoutes from "./routes/auth.js";
 import drinkRoutes from "./routes/drink.js";
 import cartRoutes from "./routes/cart.js";
-import User from "./models/user.js";
-import Drink from "./models/drinks.js"; // ✅ make sure model name matches file
 import fs from "fs";
 
 dotenv.config();
@@ -26,7 +24,7 @@ if (!fs.existsSync(uploadDir)) {
   console.log("📁 'uploads' folder created automatically");
 }
 
-// ✅ CORS for frontend connections (adjust if needed)
+// ✅ CORS setup
 app.use(cors({
   origin: "*",
   credentials: true,
@@ -47,7 +45,7 @@ app.use((req, res, next) => {
 
 // ✅ Routes
 app.use("/api/auth", authRoutes);
-app.use("/api/drinks", drinkRoutes); // includes admin image upload route
+app.use("/api/drinks", drinkRoutes);
 app.use("/api/cart", cartRoutes);
 
 // ✅ Test route
@@ -55,13 +53,13 @@ app.get("/", (req, res) => {
   res.send("Drink Shop Backend Running 🚀");
 });
 
-// ✅ Database connection & sync
-sequelize
-  .authenticate()
-  .then(() => console.log("✅ Database connected successfully"))
-  .then(() => sequelize.sync({ alter: true }))
-  .then(() => console.log("✅ All models synchronized successfully"))
-  .catch((err) => console.log("❌ Error connecting to the database:", err));
+// ✅ MongoDB Connection
+mongoose.connect(process.env.MONGO_URI)
+  .then(() => console.log("✅ MongoDB connected successfully"))
+  .catch((err) => {
+    console.error("❌ MongoDB connection error:", err.message);
+    process.exit(1);
+  });
 
 // ✅ Start server
 const PORT = process.env.PORT || 5000;

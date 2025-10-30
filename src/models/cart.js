@@ -1,27 +1,25 @@
-// src/models/cart.js
-import { DataTypes } from "sequelize";
-import sequelize from "../config/db.js";
-import User from "./user.js";
-import Drink from "../models/drinks.js";
+import mongoose from "mongoose";
 
-const Cart = sequelize.define("Cart", {
-  id: {
-    type: DataTypes.INTEGER,
-    autoIncrement: true,
-    primaryKey: true,
+const cartSchema = new mongoose.Schema(
+  {
+    userId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User", // ✅ references the User collection
+      required: true,
+    },
+    drinkId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Drink", // ✅ references the Drink collection
+      required: true,
+    },
+    quantity: {
+      type: Number,
+      required: true,
+      default: 1,
+      min: 1,
+    },
   },
-  quantity: {
-    type: DataTypes.INTEGER,
-    allowNull: false,
-    defaultValue: 1,
-  },
-});
+  { timestamps: true } // ✅ adds createdAt & updatedAt
+);
 
-// Relationships
-User.hasMany(Cart, { foreignKey: "userId", onDelete: "CASCADE" });
-Cart.belongsTo(User, { foreignKey: "userId" });
-
-Drink.hasMany(Cart, { foreignKey: "drinkId", onDelete: "CASCADE" });
-Cart.belongsTo(Drink, { foreignKey: "drinkId" });
-
-export default Cart;
+export default mongoose.model("Cart", cartSchema);
