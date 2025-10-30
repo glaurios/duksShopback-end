@@ -1,5 +1,16 @@
 import mongoose from "mongoose";
 
+const packSchema = new mongoose.Schema({
+  pack: {
+    type: Number,
+    required: true,
+  },
+  price: {
+    type: Number,
+    required: true,
+  },
+});
+
 const drinkSchema = new mongoose.Schema(
   {
     name: {
@@ -8,14 +19,6 @@ const drinkSchema = new mongoose.Schema(
       trim: true,
     },
     description: {
-      type: String,
-      default: "",
-    },
-    price: {
-      type: Number,
-      required: true,
-    },
-    imageUrl: {
       type: String,
       default: "",
     },
@@ -36,6 +39,12 @@ const drinkSchema = new mongoose.Schema(
       type: Boolean,
       default: true,
     },
+    imageUrl: {
+      type: String,
+      default: "",
+    },
+    // 🟢 NEW: Support multiple packs with individual prices
+    packs: [packSchema],
   },
   { timestamps: true }
 );
