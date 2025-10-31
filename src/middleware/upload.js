@@ -2,6 +2,7 @@ import multer from "multer";
 import { CloudinaryStorage } from "multer-storage-cloudinary";
 import { v2 as cloudinary } from "cloudinary";
 import dotenv from "dotenv";
+
 dotenv.config();
 
 // ✅ Configure Cloudinary
@@ -17,7 +18,13 @@ const storage = new CloudinaryStorage({
   params: {
     folder: "drinkshop_uploads", // Folder name in your Cloudinary account
     allowed_formats: ["jpg", "png", "jpeg"],
-    public_id: (req, file) => Date.now() + "-" + file.originalname,
+    public_id: (req, file) => {
+      // 🧹 Sanitize filename to remove invalid Cloudinary characters
+      const cleanName = file.originalname
+        .replace(/[^\w.-]/g, "_") // Replace invalid characters with underscore
+        .toLowerCase();
+      return `${Date.now()}-${cleanName}`;
+    },
   },
 });
 

@@ -25,10 +25,12 @@ if (!fs.existsSync(uploadDir)) {
 }
 
 // ✅ CORS setup
-app.use(cors({
-  origin: "*",
-  credentials: true,
-}));
+app.use(
+  cors({
+    origin: "*",
+    credentials: true,
+  })
+);
 
 // ✅ Middleware
 app.use(express.json());
@@ -53,8 +55,28 @@ app.get("/", (req, res) => {
   res.send("Drink Shop Backend Running 🚀");
 });
 
+// ✅ Handle unknown routes
+app.use((req, res) => {
+  res.status(404).json({
+    success: false,
+    message: "Route not found",
+  });
+});
+
+// ✅ Global Error Handler — THIS FIXES [object Object]
+app.use((err, req, res, next) => {
+  console.error("💥 Server Error:", err);
+
+  res.status(err.status || 500).json({
+    success: false,
+    message: err.message || "Internal Server Error",
+    stack: process.env.NODE_ENV === "development" ? err.stack : undefined,
+  });
+});
+
 // ✅ MongoDB Connection
-mongoose.connect(process.env.MONGO_URI)
+mongoose
+  .connect(process.env.MONGO_URI)
   .then(() => console.log("✅ MongoDB connected successfully"))
   .catch((err) => {
     console.error("❌ MongoDB connection error:", err.message);

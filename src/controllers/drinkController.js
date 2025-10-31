@@ -1,86 +1,179 @@
 import Drink from "../models/drinks.js";
 
-// 🟢 Get all drinks (Public)
+/**
+ * ===============================
+ * 🟢 GET ALL DRINKS (Public)
+ * ===============================
+ */
 export const getAllDrinks = async (req, res) => {
   try {
     const drinks = await Drink.find();
-    res.status(200).json(drinks);
-  } catch (err) {
-    console.error("❌ Error fetching drinks:", err);
-    res.status(500).json({ message: "Server error while fetching drinks" });
+    res.status(200).json({
+      success: true,
+      count: drinks.length,
+      drinks,
+    });
+  } catch (error) {
+    console.error("❌ Error fetching drinks:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error while fetching drinks",
+      error: error.message,
+    });
   }
 };
 
-// 🟢 Get one drink by ID (Public)
+/**
+ * ===============================
+ * 🟢 GET ONE DRINK BY ID (Public)
+ * ===============================
+ */
 export const getDrinkById = async (req, res) => {
   try {
     const drink = await Drink.findById(req.params.id);
-    if (!drink)
-      return res.status(404).json({ message: "Drink not found" });
-    res.status(200).json(drink);
-  } catch (err) {
-    console.error("❌ Error fetching drink:", err);
-    res.status(500).json({ message: "Server error while fetching drink" });
+    if (!drink) {
+      return res.status(404).json({ success: false, message: "Drink not found" });
+    }
+    res.status(200).json({ success: true, drink });
+  } catch (error) {
+    console.error("❌ Error fetching drink:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error while fetching drink",
+      error: error.message,
+    });
   }
 };
 
-// 🔒 Add new drink (Admin only)
+/**
+ * ===============================
+ * 🔒 ADD NEW DRINK (Admin only)
+ * ===============================
+ */
 export const addDrink = async (req, res) => {
   try {
-    const { name, description, price, category, size, status } = req.body;
-    if (!name || !price)
-      return res.status(400).json({ message: "Name and price are required" });
+    const { name, description, price, category, size, status, packs } = req.body;
 
-    const imageUrl = req.file ? req.file.path : null;
+    // 🧩 Basic validation
+    if (!name || !price) {
+      return res.status(400).json({
+        success: false,
+        message: "Name and price are required",
+      });
+    }
 
-    const newDrink = await Drink.create({
+    // 🖼️ Handle Cloudinary image upload
+    let imageUrl = null;
+    if (req.file) {
+      if (req.file.path) imageUrl = req.file.path; // Cloudinary auto-adds `path`
+      else if (req.file.url) imageUrl = req.file.url;
+    }
+
+    // 🧩 Parse packs safely
+    let parsedPacks = [];
+    if (packs) {
+      try {
+        parsedPacks = typeof packs === "string" ? JSON.parse(packs) : packs;
+      } catch (parseErr) {
+        console.error("⚠️ Error parsing packs JSON:", parseErr);
+      }
+    }
+
+    const newDrink = new Drink({
       name,
       description,
       price,
       category,
       size,
       status: status || "Active",
-      imageUrl,
       available: true,
+      imageUrl,
+      packs: parsedPacks,
     });
 
-    res.status(201).json({ message: "Drink added successfully", drink: newDrink });
-  } catch (err) {
-    console.error("❌ Error adding drink:", err);
-    res.status(500).json({ message: "Server error while adding drink" });
+    const savedDrink = await newDrink.save();
+
+    res.status(201).json({
+      success: true,
+      message: "✅ Drink added successfully",
+      drink: savedDrink,
+    });
+  } catch (error) {
+    console.error("❌ Error adding drink:", error);
+
+    // 🧩 This makes Postman show the real issue instead of [object Object]
+    res
+      .status(500)
+      .send(`<pre>${JSON.stringify(error, Object.getOwnPropertyNames(error), 2)}</pre>`);
   }
 };
 
-// 🔒 Update a drink (Admin only)
+/**
+ * ===============================
+ * 🔒 UPDATE A DRINK (Admin only)
+ * ===============================
+ */
 export const updateDrink = async (req, res) => {
   try {
     const { id } = req.params;
-    const updates = { ...req.body };
+    let updates = { ...req.body };
 
-    if (req.file) updates.imageUrl = req.file.path;
+    // 🖼️ Handle new image (Cloudinary)
+    if (req.file) {
+      if (req.file.path) updates.imageUrl = req.file.path;
+      else if (req.file.url) updates.imageUrl = req.file.url;
+    }
 
-    const drink = await Drink.findByIdAndUpdate(id, updates, { new: true });
-    if (!drink)
-      return res.status(404).json({ message: "Drink not found" });
+    // 🧩 Parse packs JSON if sent as string
+    if (updates.packs && typeof updates.packs === "string") {
+      try {
+        updates.packs = JSON.parse(updates.packs);
+      } catch (parseErr) {
+        console.error("⚠️ Error parsing packs JSON:", parseErr);
+      }
+    }
 
-    res.status(200).json({ message: "Drink updated successfully", drink });
-  } catch (err) {
-    console.error("❌ Error updating drink:", err);
-    res.status(500).json({ message: "Server error while updating drink" });
+    const updatedDrink = await Drink.findByIdAndUpdate(id, updates, { new: true });
+
+    if (!updatedDrink) {
+      return res.status(404).json({ success: false, message: "Drink not found" });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "✅ Drink updated successfully",
+      drink: updatedDrink,
+    });
+  } catch (error) {
+    console.error("❌ Error updating drink:", error);
+    res
+      .status(500)
+      .send(`<pre>${JSON.stringify(error, Object.getOwnPropertyNames(error), 2)}</pre>`);
   }
 };
 
-// 🔒 Delete a drink (Admin only)
+/**
+ * ===============================
+ * 🔒 DELETE A DRINK (Admin only)
+ * ===============================
+ */
 export const deleteDrink = async (req, res) => {
   try {
     const { id } = req.params;
-    const drink = await Drink.findByIdAndDelete(id);
-    if (!drink)
-      return res.status(404).json({ message: "Drink not found" });
+    const deletedDrink = await Drink.findByIdAndDelete(id);
 
-    res.status(200).json({ message: "Drink deleted successfully" });
-  } catch (err) {
-    console.error("❌ Error deleting drink:", err);
-    res.status(500).json({ message: "Server error while deleting drink" });
+    if (!deletedDrink) {
+      return res.status(404).json({ success: false, message: "Drink not found" });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "✅ Drink deleted successfully",
+    });
+  } catch (error) {
+    console.error("❌ Error deleting drink:", error);
+    res
+      .status(500)
+      .send(`<pre>${JSON.stringify(error, Object.getOwnPropertyNames(error), 2)}</pre>`);
   }
 };
