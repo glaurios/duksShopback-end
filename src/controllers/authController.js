@@ -3,20 +3,21 @@ import jwt from "jsonwebtoken";
 import User from "../models/user.js";
 
 // =======================================================
-// 🔐 Helper: Generate Tokens
+// 🔐 Helper: Generate Tokens (✅ FIXED - includes isAdmin)
 // =======================================================
 const generateTokens = (user) => {
-  const token = jwt.sign(
-    { id: user._id, isAdmin: user.isAdmin },
-    process.env.JWT_SECRET,
-    { expiresIn: "1d" }
-  );
+  const payload = {
+    id: user._id,
+    isAdmin: user.isAdmin, // ✅ Ensures token carries admin flag
+  };
 
-  const refreshToken = jwt.sign(
-    { id: user._id, isAdmin: user.isAdmin },
-    process.env.REFRESH_SECRET,
-    { expiresIn: "7d" }
-  );
+  const token = jwt.sign(payload, process.env.JWT_SECRET, {
+    expiresIn: "1d",
+  });
+
+  const refreshToken = jwt.sign(payload, process.env.REFRESH_SECRET, {
+    expiresIn: "7d",
+  });
 
   return { token, refreshToken };
 };
@@ -26,9 +27,18 @@ const generateTokens = (user) => {
 // =======================================================
 const isFixedAdmin = (email, password) => {
   const admins = [
-    { email: process.env.ADMIN_EMAIL_1, password: process.env.ADMIN_PASSWORD_1 },
-    { email: process.env.ADMIN_EMAIL_2, password: process.env.ADMIN_PASSWORD_2 },
-    { email: process.env.ADMIN_EMAIL_3, password: process.env.ADMIN_PASSWORD_3 },
+    {
+      email: process.env.ADMIN_EMAIL_1,
+      password: process.env.ADMIN_PASSWORD_1,
+    },
+    {
+      email: process.env.ADMIN_EMAIL_2,
+      password: process.env.ADMIN_PASSWORD_2,
+    },
+    {
+      email: process.env.ADMIN_EMAIL_3,
+      password: process.env.ADMIN_PASSWORD_3,
+    },
   ];
 
   return admins.find(
@@ -81,7 +91,7 @@ export const signup = async (req, res) => {
 };
 
 // =======================================================
-// 🔑 LOGIN Controller
+// 🔑 LOGIN Controller (✅ FIXED)
 // =======================================================
 export const login = async (req, res) => {
   try {
@@ -107,7 +117,8 @@ export const login = async (req, res) => {
         await admin.save();
       }
 
-      const { token, refreshToken } = generateTokens(admin);
+      const { token, refreshToken } = generateTokens(admin); // ✅ includes isAdmin:true
+
       return res.status(200).json({
         message: "Admin logged in successfully",
         token,
@@ -157,7 +168,7 @@ export const logout = (req, res) => {
 };
 
 // =======================================================
-// 🔁 REFRESH TOKEN Controller
+// 🔁 REFRESH TOKEN Controller (✅ uses isAdmin)
 // =======================================================
 export const refresh = (req, res) => {
   const { refreshToken } = req.body;
@@ -166,10 +177,12 @@ export const refresh = (req, res) => {
 
   jwt.verify(refreshToken, process.env.REFRESH_SECRET, (err, decoded) => {
     if (err)
-      return res.status(403).json({ message: "Invalid or expired refresh token" });
+      return res
+        .status(403)
+        .json({ message: "Invalid or expired refresh token" });
 
     const newAccessToken = jwt.sign(
-      { id: decoded.id, isAdmin: decoded.isAdmin },
+      { id: decoded.id, isAdmin: decoded.isAdmin }, // ✅ preserve admin flag
       process.env.JWT_SECRET,
       { expiresIn: "1d" }
     );
