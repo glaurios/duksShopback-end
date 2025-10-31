@@ -52,20 +52,20 @@ export const getDrinkById = async (req, res) => {
  */
 export const addDrink = async (req, res) => {
   try {
-    const { name, description, price, category, size, status, packs } = req.body;
+    const { name, description, category, size, status, packs } = req.body;
 
-    // 🧩 Basic validation
-    if (!name || !price) {
+    // ✅ FIXED: Validate name and packs instead of price
+    if (!name || !packs) {
       return res.status(400).json({
         success: false,
-        message: "Name and price are required",
+        message: "Name and at least one pack are required",
       });
     }
 
     // 🖼️ Handle Cloudinary image upload
-    let imageUrl = null;
+    let imageUrl = "";
     if (req.file) {
-      if (req.file.path) imageUrl = req.file.path; // Cloudinary auto-adds `path`
+      if (req.file.path) imageUrl = req.file.path;
       else if (req.file.url) imageUrl = req.file.url;
     }
 
@@ -76,16 +76,37 @@ export const addDrink = async (req, res) => {
         parsedPacks = typeof packs === "string" ? JSON.parse(packs) : packs;
       } catch (parseErr) {
         console.error("⚠️ Error parsing packs JSON:", parseErr);
+        return res.status(400).json({
+          success: false,
+          message: "Invalid packs format",
+        });
+      }
+    }
+
+    // ✅ Additional validation: ensure packs array has at least one item with pack and price
+    if (!Array.isArray(parsedPacks) || parsedPacks.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "At least one pack with pack size and price is required",
+      });
+    }
+
+    // Validate each pack has required fields
+    for (const pack of parsedPacks) {
+      if (!pack.pack || !pack.price) {
+        return res.status(400).json({
+          success: false,
+          message: "Each pack must have both pack size and price",
+        });
       }
     }
 
     const newDrink = new Drink({
       name,
-      description,
-      price,
-      category,
-      size,
-      status: status || "Active",
+      description: description || "",
+      category: category || "",
+      size: size || "",
+      status: status || "active", // ✅ Fixed: lowercase to match enum
       available: true,
       imageUrl,
       packs: parsedPacks,
@@ -100,11 +121,11 @@ export const addDrink = async (req, res) => {
     });
   } catch (error) {
     console.error("❌ Error adding drink:", error);
-
-    // 🧩 This makes Postman show the real issue instead of [object Object]
-    res
-      .status(500)
-      .send(`<pre>${JSON.stringify(error, Object.getOwnPropertyNames(error), 2)}</pre>`);
+    res.status(500).json({
+      success: false,
+      message: "Server error while adding drink",
+      error: error.message,
+    });
   }
 };
 
@@ -146,9 +167,11 @@ export const updateDrink = async (req, res) => {
     });
   } catch (error) {
     console.error("❌ Error updating drink:", error);
-    res
-      .status(500)
-      .send(`<pre>${JSON.stringify(error, Object.getOwnPropertyNames(error), 2)}</pre>`);
+    res.status(500).json({
+      success: false,
+      message: "Server error while updating drink",
+      error: error.message,
+    });
   }
 };
 
@@ -172,8 +195,10 @@ export const deleteDrink = async (req, res) => {
     });
   } catch (error) {
     console.error("❌ Error deleting drink:", error);
-    res
-      .status(500)
-      .send(`<pre>${JSON.stringify(error, Object.getOwnPropertyNames(error), 2)}</pre>`);
+    res.status(500).json({
+      success: false,
+      message: "Server error while deleting drink",
+      error: error.message,
+    });
   }
 };
