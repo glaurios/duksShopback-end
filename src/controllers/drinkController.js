@@ -101,12 +101,15 @@ export const addDrink = async (req, res) => {
       }
     }
 
+    // ✅ FIX: Convert status to lowercase to match enum values
+    const drinkStatus = status ? status.toLowerCase() : "active";
+
     const newDrink = new Drink({
       name,
       description: description || "",
       category: category || "",
       size: size || "",
-      status: status || "active", // ✅ Fixed: lowercase to match enum
+      status: drinkStatus, // ✅ Now uses lowercase status
       available: true,
       imageUrl,
       packs: parsedPacks,
@@ -138,6 +141,11 @@ export const updateDrink = async (req, res) => {
   try {
     const { id } = req.params;
     let updates = { ...req.body };
+
+    // ✅ FIX: Convert status to lowercase if it exists
+    if (updates.status) {
+      updates.status = updates.status.toLowerCase();
+    }
 
     // 🖼️ Handle new image (Cloudinary)
     if (req.file) {
