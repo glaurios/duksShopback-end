@@ -10,20 +10,23 @@ export const verifyToken = async (req, res, next) => {
     const authHeader = req.headers.authorization;
 
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
-      return res
-        .status(401)
-        .json({ message: "No token provided, authorization denied" });
+      return res.status(401).json({ message: "No token provided, authorization denied" });
     }
 
+    // 🟢 Extract token
     const token = authHeader.split(" ")[1];
+
+    // 🟢 Verify and decode token
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-    const user = await User.findById(id);
+    // 🟢 Use decoded.id to find user (MongoDB uses _id)
+    const user = await User.findById(decoded.id);
+
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
 
-    // Attach user object to request
+    // 🟢 Attach user to request for next middleware
     req.user = user;
     next();
   } catch (err) {
@@ -32,38 +35,31 @@ export const verifyToken = async (req, res, next) => {
   }
 };
 
-/** ✅ Check if logged-in user is an Admin (multi-admin support) */
+/** ✅ Check if logged-in user is an Admin */
 export const isAdmin = async (req, res, next) => {
   try {
     if (!req.user) {
       return res.status(401).json({ message: "Unauthorized - no user found" });
     }
 
-    // ✅ Collect all admin emails from .env
+    // ✅ List of admin emails (from .env)
     const adminEmails = [
       process.env.ADMIN_EMAIL_1,
       process.env.ADMIN_EMAIL_2,
       process.env.ADMIN_EMAIL_3,
-    ].filter(Boolean); // remove undefined ones
+    ].filter(Boolean);
 
-    // ✅ Check if logged-in user is one of the fixed admins
-    const isAdminUser =
-      req.user.isAdmin === true ||
-      adminEmails.includes(req.user.email);
+    // ✅ Check if user is admin either in DB or .env
+    const isAdminUser = req.user.isAdmin === true || adminEmails.includes(req.user.email);
 
     if (!isAdminUser) {
-      return res
-        .status(403)
-        .json({ message: "Access denied. Admins only." });
+      return res.status(403).json({ message: "Access denied. Admins only." });
     }
 
-    // Tag user as admin
     req.user.isAdmin = true;
     next();
   } catch (err) {
     console.error("❌ Admin verification failed:", err);
-    res
-      .status(500)
-      .json({ message: "Server error while checking admin status" });
+    res.status(500).json({ message: "Server error while checking admin status" });
   }
 };
