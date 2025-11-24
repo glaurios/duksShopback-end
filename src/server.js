@@ -7,6 +7,8 @@ import mongoose from "mongoose";
 import authRoutes from "./routes/auth.js";
 import drinkRoutes from "./routes/drink.js";
 import cartRoutes from "./routes/cart.js";
+import paymentRoutes from "./routes/paymentRoutes.js";
+import orderRoutes from "./routes/orders.js";
 import fs from "fs";
 
 dotenv.config();
@@ -49,6 +51,10 @@ app.use((req, res, next) => {
 app.use("/api/auth", authRoutes);
 app.use("/api/drinks", drinkRoutes);
 app.use("/api/cart", cartRoutes);
+app.use("/api/orders", orderRoutes);
+app.use("/api/payments", paymentRoutes);
+
+
 
 // ✅ Test route
 app.get("/", (req, res) => {
