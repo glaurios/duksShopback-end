@@ -1,9 +1,12 @@
 import express from "express";
-import { kowriWebhook } from "../controllers/paymentController.js";
+import { createPayment, kowriWebhook } from "../controllers/paymentController.js";
 
 const router = express.Router();
 
-// Kowri webhook (no auth needed)
+// Payment initiation
+router.post("/create-payment", createPayment);
+
+// Kowri webhook (no secret)
 router.post("/kowri/webhook", kowriWebhook);
 
 export default router;

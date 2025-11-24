@@ -1,62 +1,48 @@
 import Order from "../models/order.js";
-import crypto from "crypto";
 
 /**
  * ===============================
- * 📩 KWORI PAYMENT WEBHOOK
+ * 📩 KOWRI PAYMENT WEBHOOK (No signature check)
  * ===============================
  */
 export const kowriWebhook = async (req, res) => {
   try {
-    const signature = req.headers["x-kowri-signature"];
-    const payload = JSON.stringify(req.body);
+    const { status, transactionId, invoiceNum, customerReference } = req.body;
 
-    // Verify webhook signature
-    const expectedSignature = crypto
-      .createHmac("sha256", process.env.KOWRI_WEBHOOK_SECRET)
-      .update(payload)
-      .digest("hex");
+    console.log("Webhook received:", req.body);
 
-    if (signature !== expectedSignature) {
-      console.error("❌ Invalid webhook signature");
-      return res.status(401).json({ success: false, message: "Invalid signature" });
-    }
-
-    const { event, data } = req.body;
-
-    if (event === "payment.success") {
-      const { reference, order_id } = data;
-
-      const order = await Order.findById(order_id);
-      if (!order) {
-        return res.status(404).json({ success: false, message: "Order not found" });
+    if (status === "FULFILLED") {
+      // Payment successful
+      const order = await Order.findById(customerReference); // assuming customerReference = order_id
+      if (order) {
+        await Order.findByIdAndUpdate(customerReference, {
+          paymentStatus: "paid",
+          status: "confirmed",
+          "paymentDetails.paidAt": new Date(),
+          "paymentDetails.transactionId": transactionId,
+        });
+        console.log(`✅ Payment successful for order ${order.orderNumber}`);
+      } else {
+        console.warn(`⚠️ Order not found for ID: ${customerReference}`);
       }
 
-      await Order.findByIdAndUpdate(order_id, {
-        paymentStatus: "paid",
-        status: "confirmed",
-        "paymentDetails.paidAt": new Date(),
-        "paymentDetails.transactionId": reference,
-      });
-
-      console.log(`✅ Payment successful for order ${order.orderNumber}`);
-      
-      // Here you can send emails, notifications, etc.
-
-    } else if (event === "payment.failed") {
-      const { reference, order_id } = data;
-
-      await Order.findByIdAndUpdate(order_id, {
-        paymentStatus: "failed",
-        status: "failed",
-      });
-
-      console.log(`❌ Payment failed for order ${order_id}`);
+    } else if (status === "UNFULFILLED_ERROR") {
+      // Payment failed
+      const order = await Order.findById(customerReference);
+      if (order) {
+        await Order.findByIdAndUpdate(customerReference, {
+          paymentStatus: "failed",
+          status: "failed",
+        });
+        console.log(`❌ Payment failed for order ${customerReference}`);
+      }
     }
 
-    res.status(200).json({ success: true, message: "Webhook processed" });
+    // Always respond 200 OK so Kowri does not retry
+    res.sendStatus(200);
+
   } catch (error) {
     console.error("❌ Webhook error:", error);
-    res.status(500).json({ success: false, message: "Webhook processing failed" });
+    res.sendStatus(500);
   }
 };
