@@ -30,6 +30,7 @@
     "mysql2": "^3.15.1",
     "nodemailer": "^7.0.10",
     "nodemon": "^3.1.10",
+    "paystack": "^2.0.1",
     "sequelize": "^6.37.7"
   }
 }

@@ -1,12 +1,22 @@
 import express from "express";
-import { createPayment, kowriWebhook } from "../controllers/paymentController.js";
+import {
+  initializePayment,
+  verifyPayment,
+  webhookPayment,
+  getUserOrders,
+  getOrderById,
+} from "../controllers/paymentController.js";
+import { authMiddleware } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
-// Payment initiation
-router.post("/create-payment", createPayment);
+// Authenticated routes
+router.post("/initialize", authMiddleware, initializePayment);
+router.get("/verify/:reference", authMiddleware, verifyPayment);
+router.get("/user/:userId", authMiddleware, getUserOrders);
+router.get("/view/:orderId", authMiddleware, getOrderById);
 
-// Kowri webhook (no secret)
-router.post("/kowri/webhook", kowriWebhook);
+// Webhook route (no auth required)
+router.post("/webhook", express.json({ type: "*/*" }), webhookPayment);
 
 export default router;

@@ -6,7 +6,7 @@ import {
   updateDrink,
   deleteDrink,
 } from "../controllers/drinkController.js";
-import { verifyToken, isAdmin } from "../middleware/authMiddleware.js";
+import { authMiddleware, isAdmin } from "../middleware/authMiddleware.js"; // ✅ updated import
 import upload from "../middleware/upload.js";
 
 const router = express.Router();
@@ -29,7 +29,7 @@ router.get("/:id", getDrinkById);
  * ==========================
  *
  * These routes require:
- * - A valid token (verifyToken)
+ * - A valid token (authMiddleware)
  * - Admin privileges (isAdmin)
  * - Optionally, image upload via Multer
  */
@@ -37,7 +37,7 @@ router.get("/:id", getDrinkById);
 // ✅ Add a new drink (with optional image upload)
 router.post(
   "/add",
-  verifyToken,
+  authMiddleware,
   isAdmin,
   upload.single("image"),
   addDrink
@@ -46,7 +46,7 @@ router.post(
 // ✅ Update a drink (image can also be updated)
 router.put(
   "/:id",
-  verifyToken,
+  authMiddleware,
   isAdmin,
   upload.single("image"),
   updateDrink
@@ -55,7 +55,7 @@ router.put(
 // ✅ Delete a drink by ID
 router.delete(
   "/:id",
-  verifyToken,
+  authMiddleware,
   isAdmin,
   deleteDrink
 );

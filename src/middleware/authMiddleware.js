@@ -4,8 +4,8 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
-/** ✅ Verify JWT Token Middleware */
-export const verifyToken = async (req, res, next) => {
+/** ✅ Auth Middleware: Verify JWT Token */
+export const authMiddleware = async (req, res, next) => {
   try {
     const authHeader = req.headers.authorization;
 
@@ -13,20 +13,20 @@ export const verifyToken = async (req, res, next) => {
       return res.status(401).json({ message: "No token provided, authorization denied" });
     }
 
-    // 🟢 Extract token
+    // Extract token
     const token = authHeader.split(" ")[1];
 
-    // 🟢 Verify and decode token
+    // Verify and decode token
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-    // 🟢 Use decoded.id to find user (MongoDB uses _id)
+    // Find user in DB
     const user = await User.findById(decoded.id);
 
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
 
-    // 🟢 Attach user to request for next middleware
+    // Attach user to request for next middleware
     req.user = user;
     next();
   } catch (err) {
@@ -35,21 +35,20 @@ export const verifyToken = async (req, res, next) => {
   }
 };
 
-/** ✅ Check if logged-in user is an Admin */
+/** ✅ Admin Middleware: Check if user is an Admin */
 export const isAdmin = async (req, res, next) => {
   try {
     if (!req.user) {
       return res.status(401).json({ message: "Unauthorized - no user found" });
     }
 
-    // ✅ List of admin emails (from .env)
+    // List of admin emails from .env
     const adminEmails = [
       process.env.ADMIN_EMAIL_1,
       process.env.ADMIN_EMAIL_2,
       process.env.ADMIN_EMAIL_3,
     ].filter(Boolean);
 
-    // ✅ Check if user is admin either in DB or .env
     const isAdminUser = req.user.isAdmin === true || adminEmails.includes(req.user.email);
 
     if (!isAdminUser) {
