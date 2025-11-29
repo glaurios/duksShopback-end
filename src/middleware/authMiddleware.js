@@ -4,61 +4,57 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
-/** ✅ Auth Middleware: Verify JWT Token */
+/** 🔐 Auth Middleware — Validate Access Token */
 export const authMiddleware = async (req, res, next) => {
   try {
     const authHeader = req.headers.authorization;
 
+    // Require a Bearer token
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
-      return res.status(401).json({ message: "No token provided, authorization denied" });
+      return res
+        .status(401)
+        .json({ message: "No token provided. Authorization denied." });
     }
 
     // Extract token
     const token = authHeader.split(" ")[1];
 
-    // Verify and decode token
+    // Verify JWT
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-    // Find user in DB
-    const user = await User.findById(decoded.id);
+    // 🔥 IMPORTANT: Use decoded.userId (from your token payload)
+    const user = await User.findById(decoded.userId).select("-password");
 
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
 
-    // Attach user to request for next middleware
+    // Attach user to request object
     req.user = user;
     next();
   } catch (err) {
-    console.error("❌ Token verification failed:", err);
+    console.error("❌ Token verification failed:", err.message);
     return res.status(401).json({ message: "Invalid or expired token" });
   }
 };
 
-/** ✅ Admin Middleware: Check if user is an Admin */
-export const isAdmin = async (req, res, next) => {
+/** 👑 Admin-Only Access Middleware */
+export const isAdmin = (req, res, next) => {
   try {
     if (!req.user) {
-      return res.status(401).json({ message: "Unauthorized - no user found" });
+      return res.status(401).json({ message: "User not authenticated" });
     }
 
-    // List of admin emails from .env
-    const adminEmails = [
-      process.env.ADMIN_EMAIL_1,
-      process.env.ADMIN_EMAIL_2,
-      process.env.ADMIN_EMAIL_3,
-    ].filter(Boolean);
-
-    const isAdminUser = req.user.isAdmin === true || adminEmails.includes(req.user.email);
-
-    if (!isAdminUser) {
-      return res.status(403).json({ message: "Access denied. Admins only." });
+    // The user must have a role and that role must be admin
+    if (req.user.role !== "admin") {
+      return res
+        .status(403)
+        .json({ message: "Access denied. Admins only." });
     }
 
-    req.user.isAdmin = true;
     next();
   } catch (err) {
-    console.error("❌ Admin verification failed:", err);
-    res.status(500).json({ message: "Server error while checking admin status" });
+    console.error("❌ Admin check failed:", err.message);
+    res.status(500).json({ message: "Server error checking admin status" });
   }
 };
