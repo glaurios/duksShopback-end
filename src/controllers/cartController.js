@@ -55,9 +55,7 @@ export const getCartItems = async (req, res) => {
         pack: drink.packs?.[0]?.pack || null,
 
         // FIX IMAGE
-        image: drink.imageUrl
-          ? `${req.protocol}://${req.get("host")}/${drink.imageUrl}`
-          : null,
+        image: drink.imageUrl || null,
       };
     });
 
