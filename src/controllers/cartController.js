@@ -32,33 +32,43 @@ res.status(500).json({ message: "Server error" })
 }
 
 export const getCartItems = async (req, res) => {
-try {
-const userId = req.user._id;
+  try {
+    const userId = req.user.id;
 
-const items = await Cart.find({ userId }).populate("drinkId")
+    const items = await Cart.find({ userId }).populate("drinkId");
 
-const result = items.map(item => {
-  const drink = item.drinkId
+    const result = items.map(item => {
+      const drink = item.drinkId;
 
-  return {
-    id: item._id,
-    drinkId: drink._id,
-    name: drink.name,
-    price: drink.price,
-    image: drink.image,
-    qty: item.quantity,
-    pack: drink.pack,
-    packs: drink.packs
+      return {
+        id: item._id,
+        drinkId: drink._id,
+        name: drink.name,
+
+        // FIX PRICE (use the first pack price)
+        price: drink.packs?.[0]?.price || 0,
+
+        qty: item.quantity,
+
+        // FIX PACKS
+        packs: drink.packs,
+        pack: drink.packs?.[0]?.pack || null,
+
+        // FIX IMAGE
+        image: drink.imageUrl
+          ? `${req.protocol}://${req.get("host")}/${drink.imageUrl}`
+          : null,
+      };
+    });
+
+    res.json({ cartItems: result });
+
+  } catch (err) {
+    console.log(err);
+    res.status(500).json({ message: "Server error" });
   }
-})
+};
 
-res.json({ cartItems: result })
-
-
-} catch (err) {
-res.status(500).json({ message: "Server error" })
-}
-}
 
 export const removeFromCart = async (req, res) => {
 try {
