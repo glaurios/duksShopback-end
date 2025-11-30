@@ -9,27 +9,22 @@ export const authMiddleware = async (req, res, next) => {
   try {
     const authHeader = req.headers.authorization;
 
-    // Require a Bearer token
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
       return res
         .status(401)
         .json({ message: "No token provided. Authorization denied." });
     }
 
-    // Extract token
     const token = authHeader.split(" ")[1];
 
-    // Verify JWT
+    // ✅ FIXED: Your login token uses "id", not "userId"
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-    // 🔥 IMPORTANT: Use decoded.userId (from your token payload)
-    const user = await User.findById(decoded.userId).select("-password");
-
+    const user = await User.findById(decoded.id).select("-passwordHash");
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
 
-    // Attach user to request object
     req.user = user;
     next();
   } catch (err) {
@@ -45,8 +40,8 @@ export const isAdmin = (req, res, next) => {
       return res.status(401).json({ message: "User not authenticated" });
     }
 
-    // The user must have a role and that role must be admin
-    if (req.user.role !== "admin") {
+    // Your DB stores isAdmin, not role
+    if (!req.user.isAdmin) {
       return res
         .status(403)
         .json({ message: "Access denied. Admins only." });
