@@ -3,20 +3,34 @@ import {
   initializePayment,
   verifyPayment,
   webhookPayment,
+} from "../controllers/paymentController.js";
+
+import {
   getUserOrders,
   getOrderById,
-} from "../controllers/paymentController.js";
+  getAllOrders,
+  getOrderStats,
+  cancelOrder,
+  updateOrderStatus,
+} from "../controllers/orderController.js";
+
 import { authMiddleware } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
-// Authenticated routes
-router.post("/initialize", authMiddleware, initializePayment);
-router.get("/verify/:reference", authMiddleware, verifyPayment);
-router.get("/user/:userId", authMiddleware, getUserOrders);
-router.get("/view/:orderId", authMiddleware, getOrderById);
+// Payments
+router.post("/pay", authMiddleware, initializePayment);
+router.get("/verify/:reference", verifyPayment);
+router.post("/webhook", webhookPayment);
 
-// Webhook route (no auth required)
-router.post("/webhook", express.json({ type: "*/*" }), webhookPayment);
+// Orders
+router.get("/user/:userId", authMiddleware, getUserOrders);
+router.get("/:id", authMiddleware, getOrderById);
+
+// Admin routes
+router.get("/", getAllOrders);
+router.get("/stats/dashboard", getOrderStats);
+router.patch("/:id/status", updateOrderStatus);
+router.patch("/:id/cancel", authMiddleware, cancelOrder);
 
 export default router;

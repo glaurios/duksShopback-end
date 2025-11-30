@@ -1,6 +1,6 @@
 // src/controllers/authController.js
 import bcrypt from 'bcrypt';
-import { User } from '../models/user.js';
+import  User  from '../models/user.js';
 import { RefreshToken } from '../models/refreshToken.js';
 import { signAccessToken, signRefreshToken, hashToken } from '../utils/tokens.js';
 

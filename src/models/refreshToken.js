@@ -1,7 +1,7 @@
 // src/models/refreshToken.js
-import { DataTypes } from 'sequelize';
-import { sequelize } from '../config/db.js';
-import { User } from './user.js';
+import mongoose from "mongoose";
+import User from "./user.js"; // fixed default import
+
 
 export const RefreshToken = sequelize.define('RefreshToken', {
   id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
