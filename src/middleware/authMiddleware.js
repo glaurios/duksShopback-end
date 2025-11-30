@@ -4,7 +4,7 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
-/** 🔐 AUTH MIDDLEWARE (ACCESS TOKEN CHECK) */
+/** 🔐 Auth Middleware — Validate Access Token */
 export const authMiddleware = async (req, res, next) => {
   try {
     const authHeader = req.headers.authorization;
@@ -17,17 +17,15 @@ export const authMiddleware = async (req, res, next) => {
 
     const token = authHeader.split(" ")[1];
 
-    // Verify token
+    // ✅ FIXED: Your login token uses "id", not "userId"
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-    // Option A: use decoded.id
     const user = await User.findById(decoded.id).select("-passwordHash");
-
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
 
-    req.user = user; // attach user to request
+    req.user = user;
     next();
   } catch (err) {
     console.error("❌ Token verification failed:", err.message);
@@ -35,16 +33,18 @@ export const authMiddleware = async (req, res, next) => {
   }
 };
 
-/** 👑 ADMIN-ONLY MIDDLEWARE (OPTION A) */
+/** 👑 Admin-Only Access Middleware */
 export const isAdmin = (req, res, next) => {
   try {
     if (!req.user) {
       return res.status(401).json({ message: "User not authenticated" });
     }
 
-    // Option A: use user.isAdmin
+    // Your DB stores isAdmin, not role
     if (!req.user.isAdmin) {
-      return res.status(403).json({ message: "Access denied. Admins only." });
+      return res
+        .status(403)
+        .json({ message: "Access denied. Admins only." });
     }
 
     next();
