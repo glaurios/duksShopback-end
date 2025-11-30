@@ -19,7 +19,9 @@ import { authMiddleware } from "../middleware/authMiddleware.js";
 const router = express.Router();
 
 // Payments
-router.post("/pay", authMiddleware, initializePayment);
+// Payments
+router.post("/initialize", authMiddleware, initializePayment);
+
 router.get("/verify/:reference", verifyPayment);
 router.post("/webhook", webhookPayment);
 
