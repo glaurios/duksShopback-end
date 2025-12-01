@@ -2,34 +2,37 @@ import Cart from "../models/cart.js"
 import Drink from "../models/drinks.js"
 
 export const addToCart = async (req, res) => {
-try {
-const { drinkId, quantity } = req.body
-const userId = req.user._id;
+  try {
+    const { drinkId, quantity, pack } = req.body;
+    const userId = req.user._id;
 
-const drink = await Drink.findById(drinkId)
-if (!drink) return res.status(404).json({ message: "Drink not found" })
+    const drink = await Drink.findById(drinkId);
+    if (!drink) return res.status(404).json({ message: "Drink not found" });
 
-let existingItem = await Cart.findOne({ userId, drinkId })
+    // CHECK SAME DRINK + SAME PACK
+    let existingItem = await Cart.findOne({ userId, drinkId, pack });
 
-if (existingItem) {
-  existingItem.quantity = existingItem.quantity + (quantity || 1)
-  await existingItem.save()
-  return res.json({ message: "Cart updated", cartItem: existingItem })
-}
+    if (existingItem) {
+      existingItem.quantity += quantity || 1;
+      await existingItem.save();
+      return res.json({ message: "Cart updated", cartItem: existingItem });
+    }
 
-const cartItem = await Cart.create({
-  userId,
-  drinkId,
-  quantity: quantity || 1
-})
+    const cartItem = await Cart.create({
+      userId,
+      drinkId,
+      pack,
+      quantity: quantity || 1
+    });
 
-res.status(201).json({ message: "Added to cart", cartItem })
+    res.status(201).json({ message: "Added to cart", cartItem });
 
+  } catch (err) {
+    console.log(err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
 
-} catch (err) {
-res.status(500).json({ message: "Server error" })
-}
-}
 
 export const getCartItems = async (req, res) => {
   try {
