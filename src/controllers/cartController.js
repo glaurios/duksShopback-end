@@ -82,3 +82,32 @@ export const removeFromCart = async (req, res) => {
     res.status(500).json({ message: "Server error", error: err.message });
   }
 };
+
+
+// Update quantity of a cart item
+export const updateCartItemQuantity = async (req, res) => {
+  try {
+    const { id } = req.params; // cart item _id
+    let { quantity } = req.body;
+    const userId = req.user._id;
+
+    quantity = Number(quantity);
+    if (!quantity || quantity < 1) {
+      return res.status(400).json({ message: "Quantity must be at least 1" });
+    }
+
+    const cartItem = await Cart.findOneAndUpdate(
+      { _id: id, userId },
+      { $set: { quantity } },
+      { new: true }
+    );
+
+    if (!cartItem) return res.status(404).json({ message: "Cart item not found" });
+
+    res.json({ message: "Quantity updated", cartItem });
+  } catch (err) {
+    console.error("❌ Update cart item quantity error:", err);
+    res.status(500).json({ message: "Server error", error: err.message });
+  }
+};
+
