@@ -111,3 +111,29 @@ export const updateCartItemQuantity = async (req, res) => {
   }
 };
 
+
+// PATCH /cart/:id/pack
+export const updateCartItemPack = async (req, res) => {
+  try {
+    const { id } = req.params; // cart item _id
+    let { pack } = req.body;
+    const userId = req.user._id;
+
+    pack = Number(pack);
+    if (!pack) return res.status(400).json({ message: "Pack is required" });
+
+    const cartItem = await Cart.findOneAndUpdate(
+      { _id: id, userId },
+      { $set: { pack } },
+      { new: true }
+    );
+
+    if (!cartItem) return res.status(404).json({ message: "Cart item not found" });
+
+    res.json({ message: "Pack updated", cartItem });
+  } catch (err) {
+    console.error("❌ Update cart item pack error:", err);
+    res.status(500).json({ message: "Server error", error: err.message });
+  }
+};
+
