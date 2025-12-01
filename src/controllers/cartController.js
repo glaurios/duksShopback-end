@@ -1,14 +1,13 @@
 import Cart from "../models/cart.js";
 import Drink from "../models/drinks.js";
 
-// Add item to cart
+// Add item to cart (handles duplicates safely)
 export const addToCart = async (req, res) => {
   try {
-    let { drinkId, quantity, pack } = req.body;
+    let { drinkId, quantity = 1, pack } = req.body;
     const userId = req.user._id;
 
-    // Convert quantity and pack to numbers
-    quantity = Number(quantity) || 1;
+    quantity = Number(quantity);
     pack = Number(pack);
 
     const drink = await Drink.findById(drinkId);
@@ -18,22 +17,12 @@ export const addToCart = async (req, res) => {
       return res.status(400).json({ message: "Drink has no packs available" });
     }
 
-    // Check if same drink + same pack exists
-    let existingItem = await Cart.findOne({ userId, drinkId, pack });
-
-    if (existingItem) {
-      existingItem.quantity += quantity;
-      await existingItem.save();
-      return res.json({ message: "Cart updated", cartItem: existingItem });
-    }
-
-    // Create new cart item
-    const cartItem = await Cart.create({
-      userId,
-      drinkId,
-      pack,
-      quantity,
-    });
+    // Use findOneAndUpdate with upsert to avoid duplicate key errors
+    const cartItem = await Cart.findOneAndUpdate(
+      { userId, drinkId, pack },
+      { $inc: { quantity } },
+      { new: true, upsert: true, setDefaultsOnInsert: true }
+    );
 
     res.status(201).json({ message: "Added to cart", cartItem });
   } catch (err) {
@@ -42,7 +31,7 @@ export const addToCart = async (req, res) => {
   }
 };
 
-// Get all cart items for user
+// Get all cart items for a user
 export const getCartItems = async (req, res) => {
   try {
     const userId = req.user._id;
@@ -54,7 +43,6 @@ export const getCartItems = async (req, res) => {
         const drink = item.drinkId;
         if (!drink) return null;
 
-        // Find the pack selected by user
         const selectedPack = Array.isArray(drink.packs)
           ? drink.packs.find((p) => Number(p.pack) === Number(item.pack))
           : null;
