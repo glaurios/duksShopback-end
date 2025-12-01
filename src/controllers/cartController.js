@@ -43,21 +43,26 @@ export const getCartItems = async (req, res) => {
     const result = items.map(item => {
       const drink = item.drinkId;
 
+      // find the correct pack the user selected
+      const selectedPack = drink.packs.find(p => p.pack === item.pack);
+
       return {
         id: item._id,
         drinkId: drink._id,
         name: drink.name,
 
-        // FIX PRICE (use the first pack price)
-        price: drink.packs?.[0]?.price || 0,
+        // CORRECT PRICE
+        price: selectedPack ? selectedPack.price : 0,
 
         qty: item.quantity,
 
-        // FIX PACKS
+        // RETURN ALL PACKS SO USER CAN SEE OPTIONS
         packs: drink.packs,
-        pack: drink.packs?.[0]?.pack || null,
 
-        // FIX IMAGE
+        // USER-SELECTED PACK (REAL VALUE)
+        pack: item.pack,
+
+        // IMAGE
         image: drink?.imageUrl || "",
       };
     });
@@ -69,6 +74,7 @@ export const getCartItems = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
+
 
 
 export const removeFromCart = async (req, res) => {
